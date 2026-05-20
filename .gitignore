@@ -1,0 +1,7 @@
+/bin/
+*.exe
+*.test
+*.out
+/workspace/
+.claude/
+dbg-*.txt
