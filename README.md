@@ -3,6 +3,8 @@
 > User-mode песочница на Go для цифровой криминалистики и OSINT.
 > A user-mode sandbox in Go for digital forensics & OSINT.
 
+[![CI](https://github.com/AristarhUcolov/Virtual-Software-Machine/actions/workflows/ci.yml/badge.svg)](https://github.com/AristarhUcolov/Virtual-Software-Machine/actions/workflows/ci.yml)
+
 **Язык / Language:** [**#RU** — Русский](#ru) · [**#ENG** — English](#eng)
 
 ---
