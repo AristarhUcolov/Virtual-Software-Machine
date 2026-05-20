@@ -53,6 +53,7 @@ type SessionReport struct {
 	Lang        string               `json:"lang"`
 	GeneratedAt time.Time            `json:"generated_at"`
 	SessionDir  string               `json:"session_dir"`
+	SandboxDir  string               `json:"sandbox_dir"`
 	Target      TargetInfo           `json:"target"`
 	Process     ProcessInfo          `json:"process"`
 	Redirects   []RedirectInfo       `json:"redirects"`
@@ -80,6 +81,20 @@ func (r *SessionReport) IntendedDestination(path string) string {
 		}
 	}
 	return ""
+}
+
+// InSandbox reports whether path lies inside the sandbox directory — i.e. it
+// is a write the analysed program itself made (its own footprint), rather than
+// unrelated OS background activity captured by the snapshot diff.
+//
+// InSandbox сообщает, находится ли путь внутри каталога песочницы — то есть
+// это запись, сделанная самой анализируемой программой (её след), а не
+// посторонняя фоновая активность ОС, попавшая в снимок.
+func (r *SessionReport) InSandbox(path string) bool {
+	if r.SandboxDir == "" {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(path), strings.ToLower(r.SandboxDir))
 }
 
 // WriteJSON serialises the report to path as indented JSON.

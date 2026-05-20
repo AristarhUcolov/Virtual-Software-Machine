@@ -13,15 +13,17 @@ import (
 
 // htmlData is the view model passed to the HTML template.
 type htmlData struct {
-	R          *SessionReport
-	L          map[string]string // translated UI labels
-	Disclaimer string
-	FSAdded    int
-	FSModified int
-	FSDeleted  int
-	RegAdded   int
+	R           *SessionReport
+	L           map[string]string // translated UI labels
+	Disclaimer  string
+	FSAdded     int
+	FSModified  int
+	FSDeleted   int
+	RegAdded    int
 	RegModified int
-	RegDeleted int
+	RegDeleted  int
+	FSFootprint []snapshot.FSChange // changes inside the sandbox (the program itself)
+	FSSystem    []snapshot.FSChange // changes outside the sandbox (possible OS noise)
 }
 
 // WriteHTML renders the bilingual-aware forensic report to path.
@@ -42,6 +44,7 @@ func (r *SessionReport) WriteHTML(path string) error {
 		"label.roottarget", "label.child",
 		"section.verdict", "label.verdict", "label.score", "label.severity",
 		"label.indicator", "label.detail",
+		"section.footprint", "section.syschanges", "note.footprint", "note.syschanges",
 	}
 	labels := make(map[string]string, len(keys))
 	for _, k := range keys {
@@ -51,6 +54,11 @@ func (r *SessionReport) WriteHTML(path string) error {
 	data := htmlData{R: r, L: labels, Disclaimer: i18n.T(lang, "disclaimer")}
 	for _, c := range r.FSChanges {
 		countChange(c.Type, &data.FSAdded, &data.FSModified, &data.FSDeleted)
+		if r.InSandbox(c.Path) {
+			data.FSFootprint = append(data.FSFootprint, c)
+		} else {
+			data.FSSystem = append(data.FSSystem, c)
+		}
 	}
 	for _, c := range r.RegChanges {
 		countChange(c.Type, &data.RegAdded, &data.RegModified, &data.RegDeleted)
@@ -209,19 +217,13 @@ const htmlTemplate = `<!DOCTYPE html>
   {{range .R.Redirects}}<tr><td class="mono">%{{.EnvVar}}%</td><td class="mono">{{.Real}}</td><td class="mono">{{.Virtual}}</td></tr>{{end}}
  </table>
 
- <h2>{{t "section.files"}}</h2>
- {{if .R.FSChanges}}
- <table>
-  <tr><th>#</th><th>{{t "label.added"}}/{{t "label.modified"}}/{{t "label.deleted"}}</th><th>{{t "label.path"}}</th><th>{{t "label.size"}}</th><th>{{t "label.sha256"}}</th></tr>
-  {{range $i, $c := .R.FSChanges}}<tr>
-   <td>{{$i}}</td>
-   <td class="{{$c.Type}}">{{$c.Type}}</td>
-   <td class="mono">{{$c.Path}}{{$d := intended $c.Path}}{{if $d}}<br><span class="virt">→ {{$d}}</span>{{end}}</td>
-   <td>{{if $c.After}}{{humanSize $c.After.Size}}{{end}}</td>
-   <td class="mono">{{if $c.After}}{{$c.After.SHA256}}{{end}}</td>
-  </tr>{{end}}
- </table>
- {{else}}<p>{{t "msg.nochanges"}}</p>{{end}}
+ <h2>{{t "section.footprint"}}</h2>
+ <div class="note">{{t "note.footprint"}}</div>
+ {{template "fstable" .FSFootprint}}
+
+ <h2>{{t "section.syschanges"}}</h2>
+ <div class="note">{{t "note.syschanges"}}</div>
+ {{template "fstable" .FSSystem}}
 
  <h2>{{t "section.registry"}}</h2>
  {{if .R.RegChanges}}
@@ -267,4 +269,18 @@ const htmlTemplate = `<!DOCTYPE html>
 </main>
 <footer>{{.R.Tool}} {{.R.Version}}</footer>
 </body>
-</html>`
+</html>
+{{define "fstable"}}
+ {{if .}}
+ <table>
+  <tr><th>#</th><th>{{t "label.added"}}/{{t "label.modified"}}/{{t "label.deleted"}}</th><th>{{t "label.path"}}</th><th>{{t "label.size"}}</th><th>{{t "label.sha256"}}</th></tr>
+  {{range $i, $c := .}}<tr>
+   <td>{{$i}}</td>
+   <td class="{{$c.Type}}">{{$c.Type}}</td>
+   <td class="mono">{{$c.Path}}{{$d := intended $c.Path}}{{if $d}}<br><span class="virt">→ {{$d}}</span>{{end}}</td>
+   <td>{{if $c.After}}{{humanSize $c.After.Size}}{{end}}</td>
+   <td class="mono">{{if $c.After}}{{$c.After.SHA256}}{{end}}</td>
+  </tr>{{end}}
+ </table>
+ {{else}}<p>{{t "msg.nochanges"}}</p>{{end}}
+{{end}}`

@@ -53,11 +53,12 @@ type Result struct {
 // Input bundles the raw session data passed to the analyzer.
 // Input объединяет сырые данные сессии для анализатора.
 type Input struct {
-	FS       []snapshot.FSChange
-	Reg      []snapshot.RegChange
-	Net      []netmon.Conn
-	Procs    []procmon.Process
-	TimedOut bool
+	FS         []snapshot.FSChange
+	Reg        []snapshot.RegChange
+	Net        []netmon.Conn
+	Procs      []procmon.Process
+	SandboxDir string // writes under this path are the program's own footprint
+	TimedOut   bool
 }
 
 // executable file extensions that are notable when freshly created.
@@ -85,7 +86,7 @@ func Analyze(in Input, lang i18n.Lang) Result {
 
 	inds = appendIf(inds, registryAutorun(in.Reg, lang))
 	inds = appendIf(inds, startupFolder(in.FS, lang))
-	inds = appendIf(inds, droppedExecutables(in.FS, lang))
+	inds = appendIf(inds, droppedExecutables(in.FS, in.SandboxDir, lang))
 	inds = appendIf(inds, systemDirChanges(in.FS, lang))
 	inds = appendIf(inds, externalNetwork(in.Net, lang))
 	inds = appendIf(inds, lolbinChildren(in.Procs, lang))
@@ -175,8 +176,10 @@ func startupFolder(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
 	}
 }
 
-// droppedExecutables flags freshly created executable / script files.
-func droppedExecutables(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
+// droppedExecutables flags freshly created executable / script files. A drop
+// inside the sandbox is, by construction, the analysed program's own write —
+// so it is treated as a high-confidence indicator.
+func droppedExecutables(fs []snapshot.FSChange, sandboxDir string, lang i18n.Lang) *Indicator {
 	var hits []string
 	severity := Medium
 	for _, c := range fs {
@@ -187,7 +190,7 @@ func droppedExecutables(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
 			continue
 		}
 		hits = append(hits, c.Path)
-		if isSystemDir(c.Path) || isStartup(c.Path) {
+		if isSystemDir(c.Path) || isStartup(c.Path) || underDir(c.Path, sandboxDir) {
 			severity = High
 		}
 	}
@@ -299,6 +302,14 @@ func isSystemDir(p string) bool {
 
 func isStartup(p string) bool {
 	return strings.Contains(strings.ToLower(p), `\start menu\programs\startup`)
+}
+
+// underDir reports whether p lies inside dir (case-insensitive).
+func underDir(p, dir string) bool {
+	if dir == "" {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(p), strings.ToLower(dir))
 }
 
 // isExternal reports whether ip is a routable, non-private remote address.

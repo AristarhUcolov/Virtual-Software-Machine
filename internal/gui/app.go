@@ -204,7 +204,16 @@ func (u *ui) onRun() {
 		for _, ind := range r.Analysis.Indicators {
 			u.appendLog("  [" + i18n.T(u.lang, "sev."+string(ind.Severity)) + "] " + ind.Title)
 		}
-		u.appendLog(i18n.T(u.lang, "msg.fscount", len(r.FSChanges)))
+		var fpCount, sysCount int
+		for _, c := range r.FSChanges {
+			if r.InSandbox(c.Path) {
+				fpCount++
+			} else {
+				sysCount++
+			}
+		}
+		u.appendLog(i18n.T(u.lang, "msg.footprintcount", fpCount))
+		u.appendLog(i18n.T(u.lang, "msg.syscount", sysCount))
 		u.appendLog(i18n.T(u.lang, "msg.regcount", len(r.RegChanges)))
 		u.appendLog(i18n.T(u.lang, "msg.evcount", len(r.Timeline)))
 		u.appendLog(i18n.T(u.lang, "msg.netcount", len(r.Network)))

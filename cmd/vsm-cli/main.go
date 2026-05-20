@@ -83,7 +83,16 @@ func main() {
 		fmt.Printf("  [%s] %s\n", i18n.T(l, "sev."+string(ind.Severity)), ind.Title)
 	}
 	fmt.Println(strings.Repeat("-", 70))
-	fmt.Println(i18n.T(l, "msg.fscount", len(r.FSChanges)))
+	var fpCount, sysCount int
+	for _, c := range r.FSChanges {
+		if r.InSandbox(c.Path) {
+			fpCount++
+		} else {
+			sysCount++
+		}
+	}
+	fmt.Println(i18n.T(l, "msg.footprintcount", fpCount))
+	fmt.Println(i18n.T(l, "msg.syscount", sysCount))
 	fmt.Println(i18n.T(l, "msg.regcount", len(r.RegChanges)))
 	fmt.Println(i18n.T(l, "msg.evcount", len(r.Timeline)))
 	fmt.Println(i18n.T(l, "msg.netcount", len(r.Network)))

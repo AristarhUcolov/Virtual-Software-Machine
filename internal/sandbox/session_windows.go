@@ -142,11 +142,12 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	// 7. Heuristic verdict + report. // 7. Эвристический вердикт и отчёт.
 	log.say("status:report")
 	analysis := analyze.Analyze(analyze.Input{
-		FS:       fsChanges,
-		Reg:      regChanges,
-		Net:      netConns,
-		Procs:    processes,
-		TimedOut: res.TimedOut,
+		FS:         fsChanges,
+		Reg:        regChanges,
+		Net:        netConns,
+		Procs:      processes,
+		SandboxDir: sandboxRoot,
+		TimedOut:   res.TimedOut,
 	}, i18n.Normalize(cfg.Lang))
 	rep := &report.SessionReport{
 		Tool:        "Virtual Software Machine",
@@ -154,6 +155,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		Lang:        cfg.Lang,
 		GeneratedAt: time.Now(),
 		SessionDir:  sessionDir,
+		SandboxDir:  sandboxRoot,
 		Target: report.TargetInfo{
 			Path:   opts.TargetPath,
 			SHA256: snapshot.HashFile(opts.TargetPath),
