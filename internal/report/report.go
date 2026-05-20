@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"vsm/internal/analyze"
 	"vsm/internal/monitor"
 	"vsm/internal/netmon"
 	"vsm/internal/procmon"
@@ -60,6 +61,7 @@ type SessionReport struct {
 	Timeline    []monitor.Event      `json:"timeline"`
 	Network     []netmon.Conn        `json:"network"`
 	Processes   []procmon.Process    `json:"processes"`
+	Analysis    analyze.Result       `json:"analysis"`
 }
 
 // IntendedDestination maps a path that lives inside a sandbox redirect back to

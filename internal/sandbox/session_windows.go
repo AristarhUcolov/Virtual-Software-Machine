@@ -16,7 +16,9 @@ import (
 	"strings"
 	"time"
 
+	"vsm/internal/analyze"
 	"vsm/internal/config"
+	"vsm/internal/i18n"
 	"vsm/internal/monitor"
 	"vsm/internal/netmon"
 	"vsm/internal/procmon"
@@ -137,8 +139,15 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	fsChanges := snapshot.DiffFS(fsBefore, fsAfter, cfg.HashLimitMB*1024*1024)
 	regChanges := snapshot.DiffRegistry(regBefore, regAfter)
 
-	// 7. Build and persist the report. // 7. Сборка и сохранение отчёта.
+	// 7. Heuristic verdict + report. // 7. Эвристический вердикт и отчёт.
 	log.say("status:report")
+	analysis := analyze.Analyze(analyze.Input{
+		FS:       fsChanges,
+		Reg:      regChanges,
+		Net:      netConns,
+		Procs:    processes,
+		TimedOut: res.TimedOut,
+	}, i18n.Normalize(cfg.Lang))
 	rep := &report.SessionReport{
 		Tool:        "Virtual Software Machine",
 		Version:     Version,
@@ -164,6 +173,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		Timeline:   timeline,
 		Network:    netConns,
 		Processes:  processes,
+		Analysis:   analysis,
 	}
 
 	out := &Result{

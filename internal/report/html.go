@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"vsm/internal/analyze"
 	"vsm/internal/i18n"
 	"vsm/internal/snapshot"
 )
@@ -39,6 +40,8 @@ func (r *SessionReport) WriteHTML(path string) error {
 		"label.host", "label.service", "label.firstseen",
 		"section.processes", "label.image", "label.lastseen", "label.role",
 		"label.roottarget", "label.child",
+		"section.verdict", "label.verdict", "label.score", "label.severity",
+		"label.indicator", "label.detail",
 	}
 	labels := make(map[string]string, len(keys))
 	for _, k := range keys {
@@ -58,6 +61,7 @@ func (r *SessionReport) WriteHTML(path string) error {
 		"fmtTime":   func(tm time.Time) string { return tm.Format("2006-01-02 15:04:05") },
 		"intended":  r.IntendedDestination,
 		"t":         func(k string) string { return labels[k] },
+		"sevText":   func(s analyze.Severity) string { return labels["sev."+string(s)] },
 		"yesNo": func(b bool) string {
 			if b {
 				return labels["label.yes"]
@@ -124,6 +128,15 @@ const htmlTemplate = `<!DOCTYPE html>
  .mono{font-family:Consolas,monospace}
  .note{background:#332b00;border-left:4px solid #ffb300;padding:10px 14px;font-size:13px;margin-top:14px}
  .virt{color:#1b9ee0;font-size:12px}
+ .pre{white-space:pre-line}
+ .verdict{padding:16px 20px;border-radius:8px;margin-top:12px;font-size:15px;font-weight:600}
+ .verdict-clean{background:#16321a;border-left:6px solid #4caf50}
+ .verdict-suspicious{background:#352f12;border-left:6px solid #ffb300}
+ .verdict-dangerous{background:#3a1a1a;border-left:6px solid #ef5350}
+ .sev-high{color:#ef5350;font-weight:700}
+ .sev-medium{color:#ffb300;font-weight:700}
+ .sev-low{color:#42a5f5;font-weight:700}
+ .sev-info{color:#9e9e9e;font-weight:700}
  footer{padding:18px 28px;font-size:12px;opacity:.6}
 </style>
 </head>
@@ -133,6 +146,21 @@ const htmlTemplate = `<!DOCTYPE html>
  <p>{{t "app.subtitle"}}</p>
 </header>
 <main>
+
+ <h2>{{t "section.verdict"}}</h2>
+ <div class="verdict verdict-{{.R.Analysis.Level}}">
+  {{t "label.verdict"}}: {{.R.Analysis.LevelText}} &nbsp;·&nbsp; {{t "label.score"}}: {{.R.Analysis.Score}}/100
+ </div>
+ {{if .R.Analysis.Indicators}}
+ <table>
+  <tr><th>{{t "label.severity"}}</th><th>{{t "label.indicator"}}</th><th>{{t "label.detail"}}</th></tr>
+  {{range .R.Analysis.Indicators}}<tr>
+   <td class="sev-{{.Severity}}">{{sevText .Severity}}</td>
+   <td>{{.Title}}</td>
+   <td class="mono pre">{{.Detail}}</td>
+  </tr>{{end}}
+ </table>
+ {{end}}
 
  <h2>{{t "section.summary"}}</h2>
  <table>

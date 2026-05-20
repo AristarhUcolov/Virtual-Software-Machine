@@ -199,6 +199,11 @@ func (u *ui) onRun() {
 		u.openRepBtn.Enable()
 		u.openDirBtn.Enable()
 		r := res.Report
+		u.appendLog("═══ " + i18n.T(u.lang, "msg.verdict") + ": " + r.Analysis.LevelText +
+			" (" + strconv.Itoa(r.Analysis.Score) + "/100) ═══")
+		for _, ind := range r.Analysis.Indicators {
+			u.appendLog("  [" + i18n.T(u.lang, "sev."+string(ind.Severity)) + "] " + ind.Title)
+		}
 		u.appendLog(i18n.T(u.lang, "msg.fscount", len(r.FSChanges)))
 		u.appendLog(i18n.T(u.lang, "msg.regcount", len(r.RegChanges)))
 		u.appendLog(i18n.T(u.lang, "msg.evcount", len(r.Timeline)))

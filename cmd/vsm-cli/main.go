@@ -77,6 +77,12 @@ func main() {
 
 	r := res.Report
 	fmt.Println(strings.Repeat("-", 70))
+	fmt.Printf("%s: %s  [%s %d/100]\n", i18n.T(l, "msg.verdict"),
+		r.Analysis.LevelText, i18n.T(l, "label.score"), r.Analysis.Score)
+	for _, ind := range r.Analysis.Indicators {
+		fmt.Printf("  [%s] %s\n", i18n.T(l, "sev."+string(ind.Severity)), ind.Title)
+	}
+	fmt.Println(strings.Repeat("-", 70))
 	fmt.Println(i18n.T(l, "msg.fscount", len(r.FSChanges)))
 	fmt.Println(i18n.T(l, "msg.regcount", len(r.RegChanges)))
 	fmt.Println(i18n.T(l, "msg.evcount", len(r.Timeline)))
