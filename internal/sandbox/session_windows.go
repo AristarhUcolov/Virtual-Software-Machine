@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"vsm/internal/monitor"
 	"vsm/internal/netmon"
 	"vsm/internal/procmon"
+	"vsm/internal/regmon"
 	"vsm/internal/report"
 	"vsm/internal/snapshot"
 )
@@ -99,6 +101,13 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		log.say("watcher unavailable: " + werr.Error())
 	}
 
+	// Real-time registry watcher over the autostart keys.
+	// Слежение за ключами автозапуска в реальном времени.
+	regWatcher, rerr := regmon.Start(cfg.RegWatchRoots)
+	if rerr != nil {
+		log.say("registry watcher unavailable: " + rerr.Error())
+	}
+
 	// 5. Launch the contained process. // 5. Запуск процесса в изоляции.
 	log.say("status:launch")
 	env := buildEnv(redirects)
@@ -126,6 +135,12 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	if watcher != nil {
 		timeline = watcher.Stop()
 	}
+	if regWatcher != nil {
+		timeline = append(timeline, regWatcher.Stop()...)
+	}
+	sort.SliceStable(timeline, func(i, j int) bool {
+		return timeline[i].Time.Before(timeline[j].Time)
+	})
 	netConns := netMon.Stop()
 	processes := procMon.Stop()
 	proc.close()

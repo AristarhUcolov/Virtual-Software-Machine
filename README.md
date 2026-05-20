@@ -21,7 +21,7 @@ file saves, modifies and adds.
 |---|---|
 | 🧊 Снимок ДО / Pre-snapshot | Скан файловой системы и реестра до запуска. |
 | 🚀 Изолированный запуск / Isolated run | Запуск в **Job Object** + **Low Integrity** токен + перенаправление `%TEMP%`, `%APPDATA%`, `%LOCALAPPDATA%` в папку-песочницу. |
-| 👁 Наблюдение / Live watch | Хронология файловых событий в реальном времени. |
+| 👁 Наблюдение / Live watch | Хронология событий ФС и реестра в реальном времени. |
 | 🌐 Сеть / Network | IP-адреса подключений дерева процессов (TCP/UDP), порт, состояние, сервис и обратный DNS. |
 | 🧬 Процессы / Processes | Все процессы дерева песочницы: что именно запустил анализируемый файл (PID, путь, время жизни). |
 | 🧊 Снимок ПОСЛЕ / Post-snapshot | Повторный скан и вычисление разницы. |
@@ -42,7 +42,8 @@ internal/
   i18n         — двуязычный каталог сообщений             / bilingual catalog
   config       — корни наблюдения, ветки реестра, лимиты  / watch roots, limits
   snapshot     — снимки и diff ФС и реестра               / FS & registry diff
-  monitor      — наблюдатель ФС в реальном времени        / real-time watcher
+  monitor      — наблюдатель ФС в реальном времени        / real-time FS watcher
+  regmon       — наблюдатель ключей автозагрузки реестра  / real-time registry watcher
   netmon       — мониторинг сетевых подключений (IP)      / network connections
   procmon      — мониторинг процессов дерева песочницы    / process tree
   analyze      — эвристики IOC и итоговый вердикт          / IOC heuristics & verdict
@@ -106,7 +107,7 @@ isolation. Analyse genuinely dangerous samples inside a VM or Windows Sandbox.
 - [x] Эвристический вердикт и индикаторы компрометации (IOC).
 - [ ] Интеграция с Windows Sandbox (`.wsb`) для аппаратной изоляции.
 - [ ] ETW-мониторинг процессов и DNS-запросов (имена доменов до подключения).
-- [ ] Перехват реестра через `RegNotifyChangeKeyValue` в реальном времени.
+- [x] Перехват реестра через `RegNotifyChangeKeyValue` в реальном времени.
 - [ ] Фильтрация фонового «шума» ОС в diff-отчёте.
 - [ ] Экспорт отчёта в формат STIX / MISP для обмена индикаторами.
 

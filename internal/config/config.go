@@ -38,6 +38,7 @@ type Config struct {
 	WorkspaceDir  string     // base folder for all sessions
 	WatchRoots    []string   // directories snapshotted before/after the run
 	RegistryRoots []string   // registry keys snapshotted before/after the run
+	RegWatchRoots []string   // registry keys watched in real time (autorun)
 	Redirects     []Redirect // environment redirections applied to the child
 	TimeoutSec    int        // 0 = no timeout
 	LowIntegrity  bool       // run the child at Low integrity level
@@ -58,6 +59,23 @@ func DefaultRegistryRoots() []string {
 		`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`,
 		`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`,
 		`HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run`,
+		`HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`,
+		`HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows`,
+	}
+}
+
+// AutorunRegistryRoots returns the narrow, high-signal autostart keys watched
+// in real time. They are deliberately specific: watching a broad hive would
+// drown the timeline in unrelated background activity.
+//
+// AutorunRegistryRoots возвращает узкие ключи автозапуска для слежения в
+// реальном времени — широкая ветка утопила бы хронологию в фоновом шуме.
+func AutorunRegistryRoots() []string {
+	return []string{
+		`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+		`HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce`,
+		`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`,
+		`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`,
 		`HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`,
 		`HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows`,
 	}
@@ -89,6 +107,7 @@ func Default(lang string) *Config {
 		WorkspaceDir:  ws,
 		WatchRoots:    defaultWatchRoots(),
 		RegistryRoots: DefaultRegistryRoots(),
+		RegWatchRoots: AutorunRegistryRoots(),
 		TimeoutSec:    120,
 		LowIntegrity:  true,
 		HashLimitMB:   128,
