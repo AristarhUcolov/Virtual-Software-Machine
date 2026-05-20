@@ -112,6 +112,7 @@ func main() {
 	fmt.Printf("%s: %s\n", i18n.T(l, "label.duration"), time.Since(start).Round(time.Millisecond))
 	fmt.Println("HTML : " + res.HTMLPath)
 	fmt.Println("JSON : " + res.JSONPath)
+	fmt.Println("IOC  : " + res.IOCPath)
 }
 
 // translateStatus converts a "status:key" progress marker into a localized

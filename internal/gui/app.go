@@ -223,6 +223,7 @@ func (u *ui) onRun() {
 					strconv.Itoa(int(c.RemotePort)) + " " + c.State + " " + c.Service + " " + c.Host)
 			}
 		}
+		u.appendLog("IOC: " + res.IOCPath)
 		u.appendLog(i18n.T(u.lang, "msg.proccount", len(r.Processes)))
 		for _, p := range r.Processes {
 			role := i18n.T(u.lang, "label.child")

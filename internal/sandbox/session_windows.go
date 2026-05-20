@@ -30,7 +30,7 @@ import (
 
 // Version is the tool version embedded into every report.
 // Version — версия инструмента, попадающая в каждый отчёт.
-const Version = "0.1.0"
+const Version = "0.5.0"
 
 // Options describes a single run requested by the user.
 // Options описывает один запуск, запрошенный пользователем.
@@ -45,6 +45,7 @@ type Result struct {
 	Report     *report.SessionReport
 	HTMLPath   string
 	JSONPath   string
+	IOCPath    string
 	SessionDir string
 }
 
@@ -198,12 +199,16 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		SessionDir: sessionDir,
 		HTMLPath:   filepath.Join(sessionDir, "report.html"),
 		JSONPath:   filepath.Join(sessionDir, "report.json"),
+		IOCPath:    filepath.Join(sessionDir, "iocs.txt"),
 	}
 	if err := rep.WriteJSON(out.JSONPath); err != nil {
 		return out, fmt.Errorf("write json: %w", err)
 	}
 	if err := rep.WriteHTML(out.HTMLPath); err != nil {
 		return out, fmt.Errorf("write html: %w", err)
+	}
+	if err := rep.WriteIOCs(out.IOCPath); err != nil {
+		return out, fmt.Errorf("write iocs: %w", err)
 	}
 	log.say("status:done")
 	return out, nil
