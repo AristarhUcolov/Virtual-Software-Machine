@@ -231,6 +231,9 @@ func (u *ui) onRun() {
 				role = i18n.T(u.lang, "label.roottarget")
 			}
 			u.appendLog("  • pid=" + strconv.Itoa(p.PID) + " [" + role + "] " + p.Image)
+			if p.CommandLine != "" {
+				u.appendLog("      " + p.CommandLine)
+			}
 		}
 		u.setStatus("status.done")
 	}()

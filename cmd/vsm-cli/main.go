@@ -108,6 +108,9 @@ func main() {
 			role = "root"
 		}
 		fmt.Printf("  • pid=%d [%s] %s\n", p.PID, role, p.Image)
+		if p.CommandLine != "" {
+			fmt.Printf("      %s\n", p.CommandLine)
+		}
 	}
 	fmt.Printf("%s: %s\n", i18n.T(l, "label.duration"), time.Since(start).Round(time.Millisecond))
 	fmt.Println("HTML : " + res.HTMLPath)

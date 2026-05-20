@@ -124,6 +124,7 @@ var catalog = map[string]map[Lang]string{
 	"ioc.sysdir":   {RU: "Изменены системные каталоги", EN: "System directories modified"},
 	"ioc.network":  {RU: "Исходящие подключения к внешним адресам", EN: "Outbound connections to external addresses"},
 	"ioc.lolbin":   {RU: "Запуск системных интерпретаторов (LOLBin)", EN: "System interpreters launched (LOLBin)"},
+	"ioc.cmdline":  {RU: "Подозрительная командная строка процесса", EN: "Suspicious process command line"},
 	"ioc.children": {RU: "Порождены дочерние процессы", EN: "Child processes spawned"},
 	"ioc.timeout":  {RU: "Процесс не завершился самостоятельно", EN: "The process did not exit on its own"},
 	"ioc.timeout.detail": {RU: "Прерван по таймауту — возможно, ожидал ввод, завис или работал в фоне.", EN: "Terminated by timeout — it may have waited for input, hung, or run in the background."},

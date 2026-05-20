@@ -204,7 +204,7 @@ const htmlTemplate = `<!DOCTYPE html>
    <td>{{$i}}</td>
    <td>{{$p.PID}}</td>
    <td>{{if $p.IsRoot}}<span class="modified">{{t "label.roottarget"}}</span>{{else}}<span class="added">{{t "label.child"}}</span>{{end}}</td>
-   <td class="mono">{{$p.Image}}</td>
+   <td class="mono">{{$p.Image}}{{if $p.CommandLine}}<br><span class="virt">{{$p.CommandLine}}</span>{{end}}</td>
    <td>{{fmtTime $p.FirstSeen}}</td>
    <td>{{fmtTime $p.LastSeen}}</td>
   </tr>{{end}}

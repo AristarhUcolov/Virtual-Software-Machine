@@ -16,6 +16,17 @@ const (
 var (
 	modkernel32            = windows.NewLazySystemDLL("kernel32.dll")
 	procQueryInfoJobObject = modkernel32.NewProc("QueryInformationJobObject")
+	modntdll               = windows.NewLazySystemDLL("ntdll.dll")
+	procNtQueryInfoProcess = modntdll.NewProc("NtQueryInformationProcess")
+)
+
+// x64 structure offsets used to read a process command line from its PEB.
+// These offsets are stable across Windows 10 / 11 x64.
+const (
+	pbiPebOffset      = 8    // PROCESS_BASIC_INFORMATION.PebBaseAddress
+	pebParamsOffset   = 0x20 // PEB.ProcessParameters
+	paramsCmdLine     = 0x70 // RTL_USER_PROCESS_PARAMETERS.CommandLine (UNICODE_STRING)
+	maxCommandLineLen = 0x8000
 )
 
 // Monitor periodically samples the process list of one Job Object.
@@ -80,11 +91,12 @@ func (m *Monitor) poll() {
 			continue
 		}
 		m.procs[pid] = &Process{
-			PID:       int(pid),
-			Image:     imageName(pid),
-			IsRoot:    pid == m.rootPID,
-			FirstSeen: now,
-			LastSeen:  now,
+			PID:         int(pid),
+			Image:       imageName(pid),
+			CommandLine: commandLine(pid),
+			IsRoot:      pid == m.rootPID,
+			FirstSeen:   now,
+			LastSeen:    now,
 		}
 	}
 }
@@ -146,4 +158,72 @@ func imageName(pid uint32) string {
 		return ""
 	}
 	return windows.UTF16ToString(buf[:size])
+}
+
+// commandLine reads the full command line of a process by walking its PEB:
+// PROCESS_BASIC_INFORMATION -> PEB -> ProcessParameters -> CommandLine.
+// Any failure (process gone, access denied, 32-bit layout) yields "".
+//
+// commandLine читает командную строку процесса, обходя его PEB. Любая
+// ошибка (процесс завершился, нет доступа) даёт "".
+func commandLine(pid uint32) string {
+	h, err := windows.OpenProcess(
+		windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_VM_READ, false, pid)
+	if err != nil {
+		return ""
+	}
+	defer windows.CloseHandle(h)
+
+	var pbi [48]byte // PROCESS_BASIC_INFORMATION (x64)
+	var retLen uint32
+	r1, _, _ := procNtQueryInfoProcess.Call(
+		uintptr(h), 0, // ProcessBasicInformation
+		uintptr(unsafe.Pointer(&pbi[0])), uintptr(len(pbi)),
+		uintptr(unsafe.Pointer(&retLen)))
+	if r1 != 0 { // NTSTATUS != STATUS_SUCCESS
+		return ""
+	}
+	peb := *(*uintptr)(unsafe.Pointer(&pbi[pbiPebOffset]))
+	if peb == 0 {
+		return ""
+	}
+	params, ok := readPtr(h, peb+pebParamsOffset)
+	if !ok || params == 0 {
+		return ""
+	}
+	// CommandLine UNICODE_STRING: Length (u16 @0), Buffer (ptr @8).
+	var us [16]byte
+	if !readMem(h, params+paramsCmdLine, us[:]) {
+		return ""
+	}
+	length := *(*uint16)(unsafe.Pointer(&us[0]))
+	buf := *(*uintptr)(unsafe.Pointer(&us[8]))
+	if length == 0 || buf == 0 || length > maxCommandLineLen {
+		return ""
+	}
+	raw := make([]byte, length)
+	if !readMem(h, buf, raw) {
+		return ""
+	}
+	u16 := make([]uint16, length/2)
+	for i := range u16 {
+		u16[i] = uint16(raw[2*i]) | uint16(raw[2*i+1])<<8
+	}
+	return windows.UTF16ToString(u16)
+}
+
+// readPtr reads one pointer-sized value from another process.
+func readPtr(h windows.Handle, addr uintptr) (uintptr, bool) {
+	var b [8]byte
+	if !readMem(h, addr, b[:]) {
+		return 0, false
+	}
+	return *(*uintptr)(unsafe.Pointer(&b[0])), true
+}
+
+// readMem reads len(buf) bytes from another process at addr.
+func readMem(h windows.Handle, addr uintptr, buf []byte) bool {
+	var n uintptr
+	err := windows.ReadProcessMemory(h, addr, &buf[0], uintptr(len(buf)), &n)
+	return err == nil && n == uintptr(len(buf))
 }

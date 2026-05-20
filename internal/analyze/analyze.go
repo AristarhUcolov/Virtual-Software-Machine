@@ -90,6 +90,7 @@ func Analyze(in Input, lang i18n.Lang) Result {
 	inds = appendIf(inds, systemDirChanges(in.FS, lang))
 	inds = appendIf(inds, externalNetwork(in.Net, lang))
 	inds = appendIf(inds, lolbinChildren(in.Procs, lang))
+	inds = appendIf(inds, suspiciousCommandLine(in.Procs, lang))
 	inds = appendIf(inds, spawnedChildren(in.Procs, lang))
 	if in.TimedOut {
 		inds = append(inds, Indicator{
@@ -270,6 +271,40 @@ func lolbinChildren(procs []procmon.Process, lang i18n.Lang) *Indicator {
 		Severity: High,
 		Title:    i18n.T(lang, "ioc.lolbin"),
 		Detail:   joinSample(hits, 8),
+	}
+}
+
+// command-line fragments characteristic of malicious / obfuscated execution.
+var suspiciousCmdTokens = []string{
+	"-enc ", "-encodedcommand", "frombase64string", "downloadstring",
+	"downloadfile", "invoke-expression", "invoke-webrequest", "iex(", "iex ",
+	"-w hidden", "-windowstyle hidden", "-urlcache", "/i:http",
+	"mshta http", "mshta javascript", "mshta vbscript", "-decode",
+}
+
+// suspiciousCommandLine flags processes started with an obfuscated or
+// download-and-execute style command line.
+func suspiciousCommandLine(procs []procmon.Process, lang i18n.Lang) *Indicator {
+	var hits []string
+	for _, p := range procs {
+		cl := strings.ToLower(p.CommandLine)
+		if cl == "" {
+			continue
+		}
+		for _, tok := range suspiciousCmdTokens {
+			if strings.Contains(cl, tok) {
+				hits = append(hits, p.CommandLine)
+				break
+			}
+		}
+	}
+	if len(hits) == 0 {
+		return nil
+	}
+	return &Indicator{
+		Severity: High,
+		Title:    i18n.T(lang, "ioc.cmdline"),
+		Detail:   joinSample(hits, 6),
 	}
 }
 
