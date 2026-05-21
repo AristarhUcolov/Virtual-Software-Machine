@@ -74,6 +74,7 @@ winget install BrechtSanders.WinLibs.POSIX.UCRT
 ```powershell
 bin\vsm-cli.exe -lang ru -target "C:\путь\sample.exe" -timeout 60
 bin\vsm-cli.exe -lang en -target "C:\путь\sample.exe" -low=false
+bin\vsm-cli.exe -target "C:\путь\sample.exe" -wsb   # анализ в Windows Sandbox
 ```
 
 Отчёты сохраняются в `%LOCALAPPDATA%\VSM\workspace\session-<дата>\`:
@@ -99,7 +100,7 @@ Go это невозможно. Для действительно опасных
 - [x] Разделение следа программы и фонового шума ОС.
 - [x] Перехват реестра через `RegNotifyChangeKeyValue` в реальном времени.
 - [x] Экспорт индикаторов в переносимый файл `iocs.txt`.
-- [ ] Интеграция с Windows Sandbox (`.wsb`) для аппаратной изоляции.
+- [x] Интеграция с Windows Sandbox (`.wsb`) для аппаратной изоляции (флаг `-wsb`).
 - [ ] ETW-мониторинг DNS-запросов (требует прав администратора).
 - [ ] Экспорт отчёта в формат STIX / MISP.
 
@@ -176,6 +177,7 @@ winget install BrechtSanders.WinLibs.POSIX.UCRT
 ```powershell
 bin\vsm-cli.exe -lang en -target "C:\path\sample.exe" -timeout 60
 bin\vsm-cli.exe -lang ru -target "C:\path\sample.exe" -low=false
+bin\vsm-cli.exe -target "C:\path\sample.exe" -wsb   # analyse in Windows Sandbox
 ```
 
 Reports are saved to `%LOCALAPPDATA%\VSM\workspace\session-<date>\`:
@@ -201,7 +203,7 @@ forensics, OSINT and education.
 - [x] Separation of the program footprint from OS background noise.
 - [x] Real-time registry interception via `RegNotifyChangeKeyValue`.
 - [x] Export of indicators into a portable `iocs.txt` file.
-- [ ] Windows Sandbox (`.wsb`) integration for hardware isolation.
+- [x] Windows Sandbox (`.wsb`) integration for hardware isolation (`-wsb` flag).
 - [ ] ETW monitoring of DNS queries (requires administrator rights).
 - [ ] Report export to STIX / MISP format.
 

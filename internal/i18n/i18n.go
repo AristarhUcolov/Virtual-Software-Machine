@@ -139,6 +139,19 @@ var catalog = map[string]map[Lang]string{
 	"msg.evcount":    {RU: "Событий в хронологии: %d", EN: "Timeline events: %d"},
 	"msg.netcount":   {RU: "Сетевых подключений: %d", EN: "Network connections: %d"},
 	"msg.proccount":  {RU: "Процессов в песочнице: %d", EN: "Processes in sandbox: %d"},
+
+	"wsb.preparing": {RU: "Подготовка анализа для Windows Sandbox…", EN: "Preparing the analysis for Windows Sandbox…"},
+	"wsb.reportdir": {RU: "Папка отчёта (появится после анализа)", EN: "Report folder (appears after the analysis)"},
+	"wsb.launching": {RU: "Запуск Windows Sandbox…", EN: "Launching Windows Sandbox…"},
+	"wsb.done":      {RU: "Windows Sandbox запущен. Анализ идёт в изолированной ВМ; отчёт появится в папке отчёта.", EN: "Windows Sandbox launched. The analysis runs in the isolated VM; the report will appear in the report folder."},
+	"wsb.unavailable": {
+		RU: "Windows Sandbox не установлен на этой машине. Файл .wsb уже готов — откройте его на машине с Windows Sandbox.\n" +
+			"Включить (PowerShell от администратора, нужна перезагрузка):\n" +
+			"  Enable-WindowsOptionalFeature -Online -FeatureName Containers-DisposableClientVM",
+		EN: "Windows Sandbox is not installed on this machine. The .wsb file is ready — open it on a machine that has Windows Sandbox.\n" +
+			"To enable it (admin PowerShell, reboot required):\n" +
+			"  Enable-WindowsOptionalFeature -Online -FeatureName Containers-DisposableClientVM",
+	},
 	"msg.notarget":   {RU: "Не выбран файл для анализа.", EN: "No file selected for analysis."},
 	"msg.nofile":     {RU: "Файл не найден: %s", EN: "File not found: %s"},
 	"msg.contained":  {RU: "Запись перенаправлена в песочницу (приложение считало, что пишет сюда: %s)", EN: "Write redirected into the sandbox (the app believed it was writing to: %s)"},

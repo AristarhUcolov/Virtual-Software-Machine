@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"vsm/internal/i18n"
 	"vsm/internal/netmon"
 	"vsm/internal/sandbox"
+	"vsm/internal/wsb"
 )
 
 func main() {
@@ -24,6 +26,8 @@ func main() {
 	timeout := flag.Int("timeout", 120, "timeout in seconds / таймаут, сек")
 	low := flag.Bool("low", true, "run at Low integrity / низкая целостность")
 	args := flag.String("args", "", "arguments for the target / аргументы")
+	out := flag.String("out", "", "report output directory / папка для отчёта")
+	useWSB := flag.Bool("wsb", false, "analyse inside Windows Sandbox / анализ в Windows Sandbox")
 	netdump := flag.Int("netdump", 0, "diagnostic: dump connection tables N times")
 	flag.Parse()
 
@@ -53,9 +57,17 @@ func main() {
 		os.Exit(2)
 	}
 
+	if *useWSB {
+		runViaWindowsSandbox(l, *target)
+		return
+	}
+
 	cfg := config.Default(string(l))
 	cfg.TimeoutSec = *timeout
 	cfg.LowIntegrity = *low
+	if *out != "" {
+		cfg.WorkspaceDir = *out
+	}
 
 	fmt.Println("=== " + i18n.T(l, "app.title") + " ===")
 	fmt.Println(i18n.T(l, "disclaimer"))
@@ -116,6 +128,37 @@ func main() {
 	fmt.Println("HTML : " + res.HTMLPath)
 	fmt.Println("JSON : " + res.JSONPath)
 	fmt.Println("IOC  : " + res.IOCPath)
+}
+
+// runViaWindowsSandbox stages the analysis for Windows Sandbox and launches it
+// when the feature is installed; otherwise it reports an honest fallback.
+//
+// runViaWindowsSandbox готовит анализ для Windows Sandbox и запускает его, если
+// функция установлена; иначе выдаёт честное сообщение с инструкцией.
+func runViaWindowsSandbox(l i18n.Lang, target string) {
+	fmt.Println("=== " + i18n.T(l, "app.title") + " ===")
+	fmt.Println(i18n.T(l, "wsb.preparing"))
+
+	base := config.Default(string(l))
+	wsbPath, reportDir, err := wsb.Prepare(target, string(l), base.WorkspaceDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, i18n.T(l, "status.error")+": "+err.Error())
+		os.Exit(1)
+	}
+	fmt.Println("WSB    : " + wsbPath)
+	fmt.Println(i18n.T(l, "wsb.reportdir") + ": " + reportDir)
+
+	if !wsb.Available() {
+		fmt.Println()
+		fmt.Println(i18n.T(l, "wsb.unavailable"))
+		return
+	}
+	fmt.Println(i18n.T(l, "wsb.launching"))
+	if err := exec.Command(wsb.ExePath(), wsbPath).Start(); err != nil {
+		fmt.Fprintln(os.Stderr, i18n.T(l, "status.error")+": "+err.Error())
+		os.Exit(1)
+	}
+	fmt.Println(i18n.T(l, "wsb.done"))
 }
 
 // translateStatus converts a "status:key" progress marker into a localized
