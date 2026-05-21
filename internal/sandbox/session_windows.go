@@ -30,7 +30,7 @@ import (
 
 // Version is the tool version embedded into every report.
 // Version — версия инструмента, попадающая в каждый отчёт.
-const Version = "0.5.0"
+const Version = "0.8.0"
 
 // Options describes a single run requested by the user.
 // Options описывает один запуск, запрошенный пользователем.
