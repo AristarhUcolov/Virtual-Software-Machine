@@ -62,6 +62,7 @@ type SessionReport struct {
 	Timeline    []monitor.Event      `json:"timeline"`
 	Network     []netmon.Conn        `json:"network"`
 	Processes   []procmon.Process    `json:"processes"`
+	DNSQueries  []string             `json:"dns_queries"`
 	Analysis    analyze.Result       `json:"analysis"`
 }
 

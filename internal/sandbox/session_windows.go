@@ -19,6 +19,7 @@ import (
 
 	"vsm/internal/analyze"
 	"vsm/internal/config"
+	"vsm/internal/dnsmon"
 	"vsm/internal/i18n"
 	"vsm/internal/monitor"
 	"vsm/internal/netmon"
@@ -93,6 +94,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	log.say("status:snapbe")
 	fsBefore := snapshot.ScanFS(watchRoots)
 	regBefore := snapshot.ScanRegistry(cfg.RegistryRoots)
+	dnsBefore := dnsmon.Snapshot()
 	log.say(fmt.Sprintf("pre-run: %d files, %d registry keys", len(fsBefore.Files), len(regBefore.Keys)))
 
 	// 4. Real-time watcher — pointed at the sandbox tree only (the broad
@@ -152,6 +154,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	log.say("status:snapaf")
 	fsAfter := snapshot.ScanFS(watchRoots)
 	regAfter := snapshot.ScanRegistry(cfg.RegistryRoots)
+	dnsQueries := dnsmon.Diff(dnsBefore, dnsmon.Snapshot())
 	log.say("status:diff")
 	fsChanges := snapshot.DiffFS(fsBefore, fsAfter, cfg.HashLimitMB*1024*1024)
 	regChanges := snapshot.DiffRegistry(regBefore, regAfter)
@@ -192,6 +195,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		Timeline:   timeline,
 		Network:    netConns,
 		Processes:  processes,
+		DNSQueries: dnsQueries,
 		Analysis:   analysis,
 	}
 

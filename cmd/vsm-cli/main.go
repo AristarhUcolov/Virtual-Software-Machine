@@ -113,6 +113,10 @@ func main() {
 			fmt.Printf("  → %s %s:%d %s %s %s\n", c.Proto, c.RemoteAddr, c.RemotePort, c.State, c.Service, c.Host)
 		}
 	}
+	fmt.Println(i18n.T(l, "msg.dnscount", len(r.DNSQueries)))
+	for _, d := range r.DNSQueries {
+		fmt.Println("  · " + d)
+	}
 	fmt.Println(i18n.T(l, "msg.proccount", len(r.Processes)))
 	for _, p := range r.Processes {
 		role := "child"

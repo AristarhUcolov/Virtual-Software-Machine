@@ -87,6 +87,20 @@ func (r *SessionReport) WriteSTIX(path string) error {
 		}
 	}
 
+	// Domains resolved during the run (from the DNS resolver cache).
+	for _, d := range r.DNSQueries {
+		d = strings.TrimRight(d, ".")
+		if d == "" || seen["dom:"+d] {
+			continue
+		}
+		seen["dom:"+d] = true
+		add(map[string]any{
+			"type":  "domain-name",
+			"id":    "domain-name--" + newUUID(),
+			"value": d,
+		})
+	}
+
 	// Registry autorun entries.
 	for _, c := range r.RegChanges {
 		if c.Type == snapshot.Deleted {

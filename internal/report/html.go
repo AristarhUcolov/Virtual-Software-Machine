@@ -45,6 +45,7 @@ func (r *SessionReport) WriteHTML(path string) error {
 		"section.verdict", "label.verdict", "label.score", "label.severity",
 		"label.indicator", "label.detail",
 		"section.footprint", "section.syschanges", "note.footprint", "note.syschanges",
+		"section.dns", "note.dns", "label.domain",
 	}
 	labels := make(map[string]string, len(keys))
 	for _, k := range keys {
@@ -262,6 +263,15 @@ const htmlTemplate = `<!DOCTYPE html>
    <td class="mono">{{$c.Host}}</td>
    <td>{{$c.Service}}</td>
   </tr>{{end}}
+ </table>
+ {{else}}<p>{{t "msg.nochanges"}}</p>{{end}}
+
+ <h2>{{t "section.dns"}}</h2>
+ <div class="note">{{t "note.dns"}}</div>
+ {{if .R.DNSQueries}}
+ <table>
+  <tr><th>#</th><th>{{t "label.domain"}}</th></tr>
+  {{range $i, $d := .R.DNSQueries}}<tr><td>{{$i}}</td><td class="mono">{{$d}}</td></tr>{{end}}
  </table>
  {{else}}<p>{{t "msg.nochanges"}}</p>{{end}}
 

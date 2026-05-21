@@ -91,6 +91,9 @@ var catalog = map[string]map[Lang]string{
 	"label.event":     {RU: "Событие", EN: "Event"},
 
 	"section.network": {RU: "Сетевые подключения (IP-адреса)", EN: "Network connections (IP addresses)"},
+	"section.dns":     {RU: "DNS-запросы (резолвинг во время анализа)", EN: "DNS queries (resolved during the analysis)"},
+	"note.dns":        {RU: "Доменные имена, появившиеся в кэше DNS-резолвера во время анализа. Кэш общий для системы — возможен фоновый шум.", EN: "Domain names that appeared in the DNS resolver cache during the analysis. The cache is system-wide, so background noise is possible."},
+	"label.domain":    {RU: "Домен", EN: "Domain"},
 	"label.proto":     {RU: "Протокол", EN: "Protocol"},
 	"label.local":     {RU: "Локальный адрес", EN: "Local address"},
 	"label.remote":    {RU: "Удалённый адрес", EN: "Remote address"},
@@ -139,6 +142,7 @@ var catalog = map[string]map[Lang]string{
 	"msg.regcount":   {RU: "Изменений в реестре: %d", EN: "Registry changes: %d"},
 	"msg.evcount":    {RU: "Событий в хронологии: %d", EN: "Timeline events: %d"},
 	"msg.netcount":   {RU: "Сетевых подключений: %d", EN: "Network connections: %d"},
+	"msg.dnscount":   {RU: "DNS-запросов: %d", EN: "DNS queries: %d"},
 	"msg.proccount":  {RU: "Процессов в песочнице: %d", EN: "Processes in sandbox: %d"},
 
 	"wsb.preparing": {RU: "Подготовка анализа для Windows Sandbox…", EN: "Preparing the analysis for Windows Sandbox…"},

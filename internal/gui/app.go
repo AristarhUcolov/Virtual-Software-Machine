@@ -242,6 +242,10 @@ func (u *ui) onRun() {
 					strconv.Itoa(int(c.RemotePort)) + " " + c.State + " " + c.Service + " " + c.Host)
 			}
 		}
+		u.appendLog(i18n.T(u.lang, "msg.dnscount", len(r.DNSQueries)))
+		for _, d := range r.DNSQueries {
+			u.appendLog("  · " + d)
+		}
 		u.appendLog("IOC: " + res.IOCPath)
 		u.appendLog("STIX: " + res.STIXPath)
 		u.appendLog(i18n.T(u.lang, "msg.proccount", len(r.Processes)))

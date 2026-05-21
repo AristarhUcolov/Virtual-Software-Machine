@@ -67,6 +67,10 @@ func (r *SessionReport) WriteIOCs(path string) error {
 			domains.add(strings.TrimRight(c.Host, "."))
 		}
 	}
+	// Domains resolved during the run (from the DNS resolver cache).
+	for _, d := range r.DNSQueries {
+		domains.add(strings.TrimRight(d, "."))
+	}
 	if v := ips.sorted(); len(v) > 0 {
 		line("## network-ip")
 		for _, s := range v {
