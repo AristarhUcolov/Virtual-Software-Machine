@@ -224,6 +224,7 @@ func (u *ui) onRun() {
 			}
 		}
 		u.appendLog("IOC: " + res.IOCPath)
+		u.appendLog("STIX: " + res.STIXPath)
 		u.appendLog(i18n.T(u.lang, "msg.proccount", len(r.Processes)))
 		for _, p := range r.Processes {
 			role := i18n.T(u.lang, "label.child")

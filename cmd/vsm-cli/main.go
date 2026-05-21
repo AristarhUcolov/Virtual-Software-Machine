@@ -128,6 +128,7 @@ func main() {
 	fmt.Println("HTML : " + res.HTMLPath)
 	fmt.Println("JSON : " + res.JSONPath)
 	fmt.Println("IOC  : " + res.IOCPath)
+	fmt.Println("STIX : " + res.STIXPath)
 }
 
 // runViaWindowsSandbox stages the analysis for Windows Sandbox and launches it

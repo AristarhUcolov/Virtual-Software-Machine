@@ -46,6 +46,7 @@ type Result struct {
 	HTMLPath   string
 	JSONPath   string
 	IOCPath    string
+	STIXPath   string
 	SessionDir string
 }
 
@@ -200,6 +201,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		HTMLPath:   filepath.Join(sessionDir, "report.html"),
 		JSONPath:   filepath.Join(sessionDir, "report.json"),
 		IOCPath:    filepath.Join(sessionDir, "iocs.txt"),
+		STIXPath:   filepath.Join(sessionDir, "iocs.stix.json"),
 	}
 	if err := rep.WriteJSON(out.JSONPath); err != nil {
 		return out, fmt.Errorf("write json: %w", err)
@@ -209,6 +211,9 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 	}
 	if err := rep.WriteIOCs(out.IOCPath); err != nil {
 		return out, fmt.Errorf("write iocs: %w", err)
+	}
+	if err := rep.WriteSTIX(out.STIXPath); err != nil {
+		return out, fmt.Errorf("write stix: %w", err)
 	}
 	log.say("status:done")
 	return out, nil
