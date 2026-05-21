@@ -1,6 +1,8 @@
 package analyze
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"vsm/internal/i18n"
@@ -170,5 +172,38 @@ func TestAnalyzeSelfDeletion(t *testing.T) {
 	}
 	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
 		t.Error("sample self-deletion must be High severity")
+	}
+}
+
+func TestAnalyzeRansomwareRansomNote(t *testing.T) {
+	in := Input{FS: []snapshot.FSChange{{
+		Type:  snapshot.Added,
+		Path:  `C:\Users\X\Documents\HOW_TO_DECRYPT.txt`,
+		After: &snapshot.FileEntry{},
+	}}}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("a ransom-note file must be High severity")
+	}
+}
+
+func TestAnalyzeRansomwareMassModification(t *testing.T) {
+	var fs []snapshot.FSChange
+	for i := 0; i < 250; i++ {
+		fs = append(fs, snapshot.FSChange{Type: snapshot.Modified, Path: "C:\\docs\\f" + strconv.Itoa(i)})
+	}
+	if r := Analyze(Input{FS: fs}, i18n.EN); !hasSeverity(r, High) {
+		t.Error("mass file modification must be flagged as ransomware behaviour")
+	}
+}
+
+func TestAnalyzeNoRansomwareOnNormalActivity(t *testing.T) {
+	in := Input{FS: []snapshot.FSChange{
+		{Type: snapshot.Modified, Path: `C:\a`},
+		{Type: snapshot.Added, Path: `C:\readme.md`, After: &snapshot.FileEntry{}},
+	}}
+	for _, ind := range Analyze(in, i18n.EN).Indicators {
+		if strings.Contains(ind.Title, "ransom") || strings.Contains(ind.Title, "Ransom") {
+			t.Error("ordinary activity must not be flagged as ransomware")
+		}
 	}
 }

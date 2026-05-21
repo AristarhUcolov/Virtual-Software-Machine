@@ -134,6 +134,7 @@ var catalog = map[string]map[Lang]string{
 	"ioc.policy":   {RU: "Отключение системных инструментов через политики", EN: "System tools disabled via policy keys"},
 	"ioc.dropexec": {RU: "Запуск процесса из созданного файла (дроппер)", EN: "Process executed from a dropped file (dropper)"},
 	"ioc.selfdel":  {RU: "Самоудаление образца (антифорензика)", EN: "Sample self-deletion (anti-forensics)"},
+	"ioc.ransomware": {RU: "Признаки программы-вымогателя (шифровальщика)", EN: "Ransomware behaviour (mass encryption)"},
 	"ioc.children": {RU: "Порождены дочерние процессы", EN: "Child processes spawned"},
 	"ioc.timeout":  {RU: "Процесс не завершился самостоятельно", EN: "The process did not exit on its own"},
 	"ioc.timeout.detail": {RU: "Прерван по таймауту — возможно, ожидал ввод, завис или работал в фоне.", EN: "Terminated by timeout — it may have waited for input, hung, or run in the background."},

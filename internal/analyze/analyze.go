@@ -97,6 +97,7 @@ func Analyze(in Input, lang i18n.Lang) Result {
 	inds = appendIf(inds, policyTampering(in.Reg, lang))
 	inds = appendIf(inds, processFromDroppedFile(in.FS, in.Procs, lang))
 	inds = appendIf(inds, selfDeletion(in.FS, in.TargetPath, lang))
+	inds = appendIf(inds, ransomwarePattern(in.FS, lang))
 	inds = appendIf(inds, spawnedChildren(in.Procs, lang))
 	if in.TimedOut {
 		inds = append(inds, Indicator{
@@ -400,6 +401,52 @@ func selfDeletion(fs []snapshot.FSChange, targetPath string, lang i18n.Lang) *In
 		}
 	}
 	return nil
+}
+
+// ransomNoteTokens are file-name fragments typical of ransom notes.
+var ransomNoteTokens = []string{
+	"decrypt", "_readme", "ransom", "your-files", "your_files",
+	"howto_restore", "how_to_decrypt", "restore-my-files", "recover-files",
+	"recovery_instructions", "readme_to_recover", "restore_files",
+}
+
+// ransomwareMassModified is the number of modified files above which the run
+// looks like bulk encryption rather than ordinary activity.
+const ransomwareMassModified = 200
+
+// ransomwarePattern flags ransomware-like behaviour: bulk file modification
+// (mass encryption) and the appearance of ransom-note files.
+func ransomwarePattern(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
+	var notes []string
+	modified := 0
+	for _, c := range fs {
+		if c.Type == snapshot.Modified {
+			modified++
+		}
+		if c.Type == snapshot.Added {
+			base := strings.ToLower(filepath.Base(c.Path))
+			for _, tok := range ransomNoteTokens {
+				if strings.Contains(base, tok) {
+					notes = append(notes, c.Path)
+					break
+				}
+			}
+		}
+	}
+	if len(notes) == 0 && modified < ransomwareMassModified {
+		return nil
+	}
+	var detail string
+	if modified >= ransomwareMassModified {
+		detail = fmt.Sprintf("mass file modification: %d", modified)
+	}
+	if len(notes) > 0 {
+		if detail != "" {
+			detail += "\n"
+		}
+		detail += joinSample(notes, 6)
+	}
+	return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.ransomware"), Detail: detail}
 }
 
 // spawnedChildren reports non-trivial child processes (excluding conhost).
