@@ -25,7 +25,9 @@ jobs:
         env:
           CGO_ENABLED: "0"
         run: |
-          pkgs=$(go list ./... | grep -v '/internal/gui' | grep -v '/cmd/vsm$')
+          # 'go list -e' tolerates the Fyne GUI package (needs CGO) instead of
+          # aborting; it is then filtered out below.
+          pkgs=$(go list -e ./... | grep -v '/internal/gui' | grep -v '/cmd/vsm$')
           echo "Packages under test:"
           echo "$pkgs"
           go vet $pkgs
