@@ -38,6 +38,7 @@ var catalog = map[string]map[Lang]string{
 	"field.args":    {RU: "Аргументы запуска", EN: "Launch arguments"},
 	"field.timeout": {RU: "Таймаут, сек", EN: "Timeout, sec"},
 	"field.lowint":  {RU: "Низкий уровень целостности (Low Integrity)", EN: "Low integrity level"},
+	"field.wsb":     {RU: "Запуск в Windows Sandbox (изолированная ВМ)", EN: "Run in Windows Sandbox (isolated VM)"},
 	"field.run":     {RU: "Запустить в песочнице", EN: "Run in sandbox"},
 	"field.openrep": {RU: "Открыть отчёт", EN: "Open report"},
 	"field.opendir": {RU: "Открыть папку сессии", EN: "Open session folder"},

@@ -8,6 +8,7 @@
 package gui
 
 import (
+	"image/color"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	fyneapp "fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -22,6 +24,7 @@ import (
 	"vsm/internal/config"
 	"vsm/internal/i18n"
 	"vsm/internal/sandbox"
+	"vsm/internal/wsb"
 )
 
 type ui struct {
@@ -40,10 +43,12 @@ type ui struct {
 	timeoutLbl *widget.Label
 	timeoutEnt *widget.Entry
 	lowChk     *widget.Check
+	wsbChk     *widget.Check
 	runBtn     *widget.Button
 	openRepBtn *widget.Button
 	openDirBtn *widget.Button
 	status     *widget.Label
+	verdict    *canvas.Text
 	logLbl     *widget.Label
 	disclaimer *widget.Label
 
@@ -95,6 +100,8 @@ func (u *ui) build() {
 	u.lowChk = widget.NewCheck("", nil)
 	u.lowChk.SetChecked(true)
 
+	u.wsbChk = widget.NewCheck("", nil)
+
 	u.runBtn = widget.NewButton("", u.onRun)
 	u.runBtn.Importance = widget.HighImportance
 
@@ -104,6 +111,9 @@ func (u *ui) build() {
 	u.openDirBtn.Disable()
 
 	u.status = widget.NewLabel("")
+	u.verdict = canvas.NewText("", color.White)
+	u.verdict.TextStyle = fyne.TextStyle{Bold: true}
+	u.verdict.TextSize = 16
 	u.logLbl = widget.NewLabel("")
 	u.logLbl.Wrapping = fyne.TextWrapBreak
 	u.disclaimer = widget.NewLabel("")
@@ -119,10 +129,11 @@ func (u *ui) content() fyne.CanvasObject {
 		u.argsLbl, u.argsEnt,
 		u.timeoutLbl, u.timeoutEnt,
 		widget.NewLabel(""), u.lowChk,
+		widget.NewLabel(""), u.wsbChk,
 	)
 
 	actions := container.NewHBox(u.runBtn, u.openRepBtn, u.openDirBtn)
-	top := container.NewVBox(header, form, actions, u.status, widget.NewSeparator())
+	top := container.NewVBox(header, form, actions, u.status, u.verdict, widget.NewSeparator())
 	bottom := container.NewVBox(widget.NewSeparator(), u.disclaimer)
 	logScroll := container.NewVScroll(u.logLbl)
 
@@ -142,6 +153,8 @@ func (u *ui) applyLang() {
 	u.timeoutLbl.SetText(t("field.timeout"))
 	u.lowChk.Text = t("field.lowint")
 	u.lowChk.Refresh()
+	u.wsbChk.Text = t("field.wsb")
+	u.wsbChk.Refresh()
 	u.runBtn.SetText(t("field.run"))
 	u.openRepBtn.SetText(t("field.openrep"))
 	u.openDirBtn.SetText(t("field.opendir"))
@@ -168,6 +181,10 @@ func (u *ui) onRun() {
 			i18n.T(u.lang, "msg.notarget"), u.win)
 		return
 	}
+	if u.wsbChk.Checked {
+		u.runViaWSB(target)
+		return
+	}
 	timeout, err := strconv.Atoi(strings.TrimSpace(u.timeoutEnt.Text))
 	if err != nil || timeout < 0 {
 		timeout = 120
@@ -186,6 +203,7 @@ func (u *ui) onRun() {
 	u.openRepBtn.Disable()
 	u.openDirBtn.Disable()
 	u.logLbl.SetText("")
+	u.clearVerdict()
 	u.setStatus("status.prepare")
 
 	go func() {
@@ -199,6 +217,7 @@ func (u *ui) onRun() {
 		u.openRepBtn.Enable()
 		u.openDirBtn.Enable()
 		r := res.Report
+		u.showVerdict(r.Analysis.Level, r.Analysis.LevelText, r.Analysis.Score)
 		u.appendLog("═══ " + i18n.T(u.lang, "msg.verdict") + ": " + r.Analysis.LevelText +
 			" (" + strconv.Itoa(r.Analysis.Score) + "/100) ═══")
 		for _, ind := range r.Analysis.Indicators {
@@ -238,6 +257,66 @@ func (u *ui) onRun() {
 		}
 		u.setStatus("status.done")
 	}()
+}
+
+// runViaWSB prepares the analysis for Windows Sandbox and launches it when the
+// feature is installed; otherwise it shows the honest fallback in the log.
+//
+// runViaWSB готовит анализ для Windows Sandbox и запускает его, если функция
+// установлена; иначе показывает честное сообщение в журнале.
+func (u *ui) runViaWSB(target string) {
+	u.runBtn.Disable()
+	u.openRepBtn.Disable()
+	u.openDirBtn.Disable()
+	u.logLbl.SetText("")
+	u.clearVerdict()
+	u.setStatus("wsb.preparing")
+
+	go func() {
+		defer u.runBtn.Enable()
+		base := config.Default(string(u.lang))
+		wsbPath, reportDir, err := wsb.Prepare(target, string(u.lang), base.WorkspaceDir)
+		if err != nil {
+			u.status.SetText(i18n.T(u.lang, "status.error") + ": " + err.Error())
+			return
+		}
+		u.appendLog("WSB: " + wsbPath)
+		u.appendLog(i18n.T(u.lang, "wsb.reportdir") + ": " + reportDir)
+		if !wsb.Available() {
+			u.appendLog(i18n.T(u.lang, "wsb.unavailable"))
+			u.setStatus("status.idle")
+			return
+		}
+		u.appendLog(i18n.T(u.lang, "wsb.launching"))
+		if err := exec.Command(wsb.ExePath(), wsbPath).Start(); err != nil {
+			u.status.SetText(i18n.T(u.lang, "status.error") + ": " + err.Error())
+			return
+		}
+		u.appendLog(i18n.T(u.lang, "wsb.done"))
+		u.setStatus("status.done")
+	}()
+}
+
+// showVerdict paints the coloured verdict banner after an analysis.
+// showVerdict показывает цветной баннер вердикта после анализа.
+func (u *ui) showVerdict(level, text string, score int) {
+	switch level {
+	case "dangerous":
+		u.verdict.Color = color.RGBA{R: 0xef, G: 0x53, B: 0x50, A: 0xff}
+	case "suspicious":
+		u.verdict.Color = color.RGBA{R: 0xff, G: 0xb3, B: 0x00, A: 0xff}
+	default:
+		u.verdict.Color = color.RGBA{R: 0x4c, G: 0xaf, B: 0x50, A: 0xff}
+	}
+	u.verdict.Text = "■ " + i18n.T(u.lang, "msg.verdict") + ": " + text +
+		"  (" + strconv.Itoa(score) + "/100)"
+	u.verdict.Refresh()
+}
+
+// clearVerdict blanks the verdict banner before a new run.
+func (u *ui) clearVerdict() {
+	u.verdict.Text = ""
+	u.verdict.Refresh()
 }
 
 // appendLog adds one line to the log view, translating "status:*" markers.
