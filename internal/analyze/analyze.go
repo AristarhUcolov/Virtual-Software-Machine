@@ -58,6 +58,7 @@ type Input struct {
 	Net        []netmon.Conn
 	Procs      []procmon.Process
 	SandboxDir string // writes under this path are the program's own footprint
+	TargetPath string // the analysed file itself
 	TimedOut   bool
 }
 
@@ -91,6 +92,11 @@ func Analyze(in Input, lang i18n.Lang) Result {
 	inds = appendIf(inds, externalNetwork(in.Net, lang))
 	inds = appendIf(inds, lolbinChildren(in.Procs, lang))
 	inds = appendIf(inds, suspiciousCommandLine(in.Procs, lang))
+	inds = appendIf(inds, hostsFileModified(in.FS, lang))
+	inds = appendIf(inds, scheduledTaskCreated(in.FS, lang))
+	inds = appendIf(inds, policyTampering(in.Reg, lang))
+	inds = appendIf(inds, processFromDroppedFile(in.FS, in.Procs, lang))
+	inds = appendIf(inds, selfDeletion(in.FS, in.TargetPath, lang))
 	inds = appendIf(inds, spawnedChildren(in.Procs, lang))
 	if in.TimedOut {
 		inds = append(inds, Indicator{
@@ -306,6 +312,94 @@ func suspiciousCommandLine(procs []procmon.Process, lang i18n.Lang) *Indicator {
 		Title:    i18n.T(lang, "ioc.cmdline"),
 		Detail:   joinSample(hits, 6),
 	}
+}
+
+// hostsFileModified flags any edit to the Windows hosts file, a classic
+// DNS-hijacking technique.
+func hostsFileModified(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
+	for _, c := range fs {
+		if c.Type == snapshot.Deleted {
+			continue
+		}
+		if strings.Contains(strings.ToLower(c.Path), `\drivers\etc\hosts`) {
+			return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.hosts"), Detail: c.Path}
+		}
+	}
+	return nil
+}
+
+// scheduledTaskCreated flags new files dropped into a Task Scheduler folder —
+// persistence via a scheduled task.
+func scheduledTaskCreated(fs []snapshot.FSChange, lang i18n.Lang) *Indicator {
+	var hits []string
+	for _, c := range fs {
+		if c.Type != snapshot.Added {
+			continue
+		}
+		lp := strings.ToLower(c.Path)
+		if strings.Contains(lp, `\system32\tasks\`) || strings.Contains(lp, `\windows\tasks\`) {
+			hits = append(hits, c.Path)
+		}
+	}
+	if len(hits) == 0 {
+		return nil
+	}
+	return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.schtask"), Detail: joinSample(hits, 6)}
+}
+
+// policyTampering flags registry writes that disable system tools — Task
+// Manager, the registry editor, Run, the control panel, etc.
+func policyTampering(reg []snapshot.RegChange, lang i18n.Lang) *Indicator {
+	var hits []string
+	for _, c := range reg {
+		if c.Type == snapshot.Deleted {
+			continue
+		}
+		k := strings.ToLower(c.KeyPath)
+		if strings.Contains(k, `\policies\system`) || strings.Contains(k, `\policies\explorer`) {
+			hits = append(hits, c.KeyPath+`\`+c.ValueName)
+		}
+	}
+	if len(hits) == 0 {
+		return nil
+	}
+	return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.policy"), Detail: joinSample(hits, 6)}
+}
+
+// processFromDroppedFile flags a process whose image is a file the analysed
+// program created during the run — the defining behaviour of a dropper.
+func processFromDroppedFile(fs []snapshot.FSChange, procs []procmon.Process, lang i18n.Lang) *Indicator {
+	dropped := map[string]bool{}
+	for _, c := range fs {
+		if c.Type == snapshot.Added {
+			dropped[strings.ToLower(c.Path)] = true
+		}
+	}
+	var hits []string
+	for _, p := range procs {
+		if p.Image != "" && dropped[strings.ToLower(p.Image)] {
+			hits = append(hits, p.Image)
+		}
+	}
+	if len(hits) == 0 {
+		return nil
+	}
+	return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.dropexec"), Detail: joinSample(hits, 6)}
+}
+
+// selfDeletion flags the analysed file deleting itself — a common
+// anti-forensics move.
+func selfDeletion(fs []snapshot.FSChange, targetPath string, lang i18n.Lang) *Indicator {
+	if targetPath == "" {
+		return nil
+	}
+	tp := strings.ToLower(targetPath)
+	for _, c := range fs {
+		if c.Type == snapshot.Deleted && strings.ToLower(c.Path) == tp {
+			return &Indicator{Severity: High, Title: i18n.T(lang, "ioc.selfdel"), Detail: c.Path}
+		}
+	}
+	return nil
 }
 
 // spawnedChildren reports non-trivial child processes (excluding conhost).

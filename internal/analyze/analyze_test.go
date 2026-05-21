@@ -111,3 +111,64 @@ func TestAnalyzeTimeoutIsInfoOnly(t *testing.T) {
 		t.Errorf("expected exactly one Info indicator, got %+v", r.Indicators)
 	}
 }
+
+func TestAnalyzeHostsFileModified(t *testing.T) {
+	in := Input{FS: []snapshot.FSChange{{
+		Type:  snapshot.Modified,
+		Path:  `C:\Windows\System32\drivers\etc\hosts`,
+		After: &snapshot.FileEntry{},
+	}}}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("a hosts-file modification must be High severity")
+	}
+}
+
+func TestAnalyzeScheduledTask(t *testing.T) {
+	in := Input{FS: []snapshot.FSChange{{
+		Type:  snapshot.Added,
+		Path:  `C:\Windows\System32\Tasks\EvilTask`,
+		After: &snapshot.FileEntry{},
+	}}}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("scheduled-task creation must be High severity")
+	}
+}
+
+func TestAnalyzePolicyTampering(t *testing.T) {
+	in := Input{Reg: []snapshot.RegChange{{
+		Type:      snapshot.Added,
+		KeyPath:   `HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System`,
+		ValueName: "DisableTaskMgr",
+	}}}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("disabling Task Manager via a policy key must be High severity")
+	}
+}
+
+func TestAnalyzeProcessFromDroppedFile(t *testing.T) {
+	in := Input{
+		FS: []snapshot.FSChange{{
+			Type:  snapshot.Added,
+			Path:  `C:\sb\appdata\payload.exe`,
+			After: &snapshot.FileEntry{},
+		}},
+		Procs: []procmon.Process{
+			{PID: 1, Image: `C:\sample.exe`, IsRoot: true},
+			{PID: 2, Image: `C:\sb\appdata\payload.exe`},
+		},
+	}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("a process run from a dropped file must be High severity")
+	}
+}
+
+func TestAnalyzeSelfDeletion(t *testing.T) {
+	target := `C:\Users\X\Downloads\sample.exe`
+	in := Input{
+		TargetPath: target,
+		FS:         []snapshot.FSChange{{Type: snapshot.Deleted, Path: target}},
+	}
+	if r := Analyze(in, i18n.EN); !hasSeverity(r, High) {
+		t.Error("sample self-deletion must be High severity")
+	}
+}

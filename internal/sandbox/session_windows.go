@@ -167,6 +167,7 @@ func Run(cfg *config.Config, opts Options, log logf) (*Result, error) {
 		Net:        netConns,
 		Procs:      processes,
 		SandboxDir: sandboxRoot,
+		TargetPath: opts.TargetPath,
 		TimedOut:   res.TimedOut,
 	}, i18n.Normalize(cfg.Lang))
 	rep := &report.SessionReport{
